@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Memory Match Game with Timer</title>
+<title>Memory Match Game</title>
 
 <style>
 body {
@@ -11,14 +11,10 @@ body {
   background-color: rgb(90, 198, 228);
 }
 
-h2 {
-  margin-top: 20px;
-}
-
 #container {
   display: grid;
   grid-template-columns: repeat(4, 100px);
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
   margin-top: 20px;
 }
@@ -26,45 +22,100 @@ h2 {
 .box {
   width: 100px;
   height: 100px;
-  border: 2px solid rgb(255, 255, 255);
-  
   position: relative;
+  border-radius: 10px;
+  overflow: hidden;
   cursor: pointer;
 }
 
-.box img {
+/* animal image */
+.animal {
   width: 100%;
   height: 100%;
+  object-fit: cover;
   position: absolute;
   top: 0;
   left: 0;
-  background-color: rgb(167, 227, 177);
-}
-
-.animal {
   z-index: 1;
-  zoom: 5;
 }
 
+/* cover (FIXED) */
 .cover {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: rgb(167, 227, 177); /* green background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   z-index: 2;
 }
 
-#buttons {
-  margin-top: 20px;
+/* clover icon */
+.cover img {
+  width: 60%;
+  height: 60%;
+  object-fit: contain;
 }
 
+/* buttons */
 button {
   padding: 10px 20px;
+  margin: 10px;
   font-size: 16px;
-  margin: 5px;
-  border-radius: 10;
+  cursor: pointer;
 }
 
-#timer {
-  font-size: 18px;
-  margin-top: 10px;
-  color: rgb(255, 255, 255);
+/* WIN SCREEN */
+#winScreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-size: 40px;
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.5s;
+}
+
+#winScreen.show {
+  opacity: 1;
+  pointer-events: all;
+}
+
+#replayBtn {
+  font-size: 20px;
+  padding: 12px 25px;
+  background: orange;
+  border: none;
+  border-radius: 8px;
+}
+
+#replayBtn:hover {
+  background: gold;
+}
+
+/* CONFETTI */
+.confetti {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  top: -10px;
+  animation: fall linear forwards;
+}
+
+@keyframes fall {
+  to {
+    transform: translateY(100vh) rotate(360deg);
+  }
 }
 </style>
 </head>
@@ -74,76 +125,82 @@ button {
 <h1>Flip Game</h1>
 <h2>MATCH ALL CARDS TO WIN</h2>
 
-
-<div id="timer"></div>
 <div id="container"></div>
 
-<div id="buttons">
+<div>
   <button id="startBtn">Start</button>
   <button id="restartBtn">Restart</button>
 </div>
 
+<!-- WIN SCREEN -->
+<div id="winScreen">
+  <div>🎉 You Win! 🎉</div>
+  <button id="replayBtn">Replay</button>
+</div>
+
 <script>
 const dataArray = [
-  {id:1,value:'A',src:'dog.jpeg'},
-  {id:2,value:'B',src:'cat.jpeg'},
-  {id:3,value:'C',src:'lion.jpeg'},
-  {id:4,value:'D',src:'tiger.jpeg'},
-  {id:5,value:'E',src:'ant.jpeg'},
-  {id:6,value:'F',src:'fish.jpeg'},
-  {id:7,value:'G',src:'shark.jpeg'},
-  {id:8,value:'H',src:'bee.jpeg'}
+  {value:'A',src:'dog.jpeg'},
+  {value:'B',src:'cat.jpeg'},
+  {value:'C',src:'lion.jpeg'},
+  {value:'D',src:'tiger.jpeg'},
+  {value:'E',src:'ant.jpeg'},
+  {value:'F',src:'fish.jpeg'},
+  {value:'G',src:'shark.jpeg'},
+  {value:'H',src:'bee.jpeg'}
 ];
 
-let gridArray = [];
 let container = document.getElementById("container");
-
-
-let timerDiv = document.getElementById("timer");
 
 let firstBox = null;
 let secondBox = null;
 let lockBoard = false;
 
-
-let countdownInterval = null;
+let matchedPairs = 0;
+const totalPairs = dataArray.length;
 
 function shuffle(array) {
   return array.sort(() => Math.random() - 0.5);
 }
 
-function generateGrid() 
-{
+function generateGrid() {
   container.innerHTML = "";
-  timerDiv.innerHTML = ""; 
   firstBox = null;
   secondBox = null;
   lockBoard = false;
 
-  
-  gridArray = shuffle([...dataArray, ...dataArray]);
+  matchedPairs = 0;
+  document.getElementById("winScreen").classList.remove("show");
+
+  let gridArray = shuffle([...dataArray, ...dataArray]);
 
   gridArray.forEach(item => {
     let box = document.createElement("div");
     box.className = "box";
     box.dataset.value = item.value;
 
-    let animalImg = document.createElement("img");
-    animalImg.src = item.src;
-    animalImg.className = "animal";
+    // animal image
+    let animal = document.createElement("img");
+    animal.src = item.src;
+    animal.className = "animal";
 
-    let coverImg = document.createElement("img");
-    coverImg.src = "clover.png";
-    coverImg.className = "cover";
+    // cover div
+    let cover = document.createElement("div");
+    cover.className = "cover";
 
-    box.appendChild(animalImg);
-    box.appendChild(coverImg);
-    
+    // clover image inside cover
+    let clover = document.createElement("img");
+    clover.src = "clover.png";
+
+    cover.appendChild(clover);
+
+    box.appendChild(animal);
+    box.appendChild(cover);
+
     box.addEventListener("click", () => {
-      if(lockBoard) return;
-      if(coverImg.style.display === "none") return;
+      if(lockBoard || cover.style.display === "none") return;
 
-      coverImg.style.display = "none";
+      cover.style.display = "none";
 
       if(!firstBox) {
         firstBox = box;
@@ -151,36 +208,24 @@ function generateGrid()
         secondBox = box;
         lockBoard = true;
 
-        let firstValue = firstBox.dataset.value;
-        let secondValue = secondBox.dataset.value;
+        if(firstBox.dataset.value === secondBox.dataset.value) {
+          matchedPairs++;
 
-        if(firstValue === secondValue) {
-          
           setTimeout(() => {
-            //firstBox.style.border = "4px solid yellow";
-            //secondBox.style.border = "4px solid yellow";
-            resetSelection();
-          }, 500);
-        } else {
-             let countdown = 0.8; 
+            reset();
 
-          
-          countdownInterval = setInterval(() => {
-            countdown--;
-            if(countdown > 0) {
-            } else {
-              clearInterval(countdownInterval);  
-              timerDiv.textContent = ""; 
-
-             
-              firstBox.querySelector(".cover").style.display = "block";
-              secondBox.querySelector(".cover").style.display = "block";
-             document.getElementById("timer").textContent = "Try Again!";
-              
-
-              resetSelection();
+            if(matchedPairs === totalPairs) {
+              showWin();
             }
-          }, 1000);
+
+          }, 400);
+
+        } else {
+          setTimeout(() => {
+            firstBox.querySelector(".cover").style.display = "flex";
+            secondBox.querySelector(".cover").style.display = "flex";
+            reset();
+          }, 700);
         }
       }
     });
@@ -189,17 +234,33 @@ function generateGrid()
   });
 }
 
-
-function resetSelection() {
+function reset() {
   firstBox = null;
   secondBox = null;
   lockBoard = false;
-  clearInterval(countdownInterval); 
-  timerDiv.textContent = "";
 }
 
-document.getElementById("startBtn").addEventListener("click", generateGrid);
-document.getElementById("restartBtn").addEventListener("click", generateGrid);
+function showWin() {
+  const winScreen = document.getElementById("winScreen");
+  winScreen.classList.add("show");
+
+  for(let i = 0; i < 120; i++) {
+    let c = document.createElement("div");
+    c.className = "confetti";
+
+    c.style.left = Math.random()*100 + "vw";
+    c.style.background = `hsl(${Math.random()*360},100%,50%)`;
+    c.style.animationDuration = (Math.random()*2 + 2) + "s";
+
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+}
+
+// buttons
+document.getElementById("startBtn").onclick = generateGrid;
+document.getElementById("restartBtn").onclick = generateGrid;
+document.getElementById("replayBtn").onclick = generateGrid;
 
 </script>
 
